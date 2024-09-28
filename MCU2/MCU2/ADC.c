@@ -5,7 +5,7 @@
  *  Author: a3abd
  */ 
 
-#define F_CPU 8000000ul
+#define F_CPU 1000000ul
 #include "STD_MacRos.h"
 #include "ADC.h"
 #include <avr/io.h>
@@ -15,7 +15,7 @@ void ADC_Init()
 { 
 	setbit(ADMUX, REFS0); // AVcc with external capacitor at AREF pin
 	setbit(ADCSRA,ADEN);  // Enable ADC
-	setbit(ADCSRA,ADPS0); //set Prescaler to 128
+	clrbit(ADCSRA,ADPS0); //set Prescaler to 64
 	setbit(ADCSRA,ADPS1);
 	setbit(ADCSRA,ADPS2);
 }

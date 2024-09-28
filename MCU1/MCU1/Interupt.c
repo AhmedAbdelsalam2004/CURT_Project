@@ -5,7 +5,7 @@
  *  Author: a3abd
  */ 
 
-#define F_CPU 1000000
+#define F_CPU 1000000ul
 #include <avr/io.h>
 #include <util/delay.h>
 #include <avr/interrupt.h>

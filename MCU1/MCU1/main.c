@@ -5,7 +5,7 @@
  * Author : a3abd
  */ 
 
-#define F_CPU 8000000UL
+#define F_CPU 1000000UL
 #define EEPROM_STATE_ADDRESS 0x00  // Address 0x00 in EEPROM for system state
 #include <avr/io.h>
 #include <util/delay.h>
@@ -18,6 +18,8 @@
 #include "EEPROM.h"
 
 unsigned char temperature = 0;
+unsigned char Over_Flow_Counter = 0;
+
 
 /* Function to control fan speed based on temperature */
 void Control_Fan(unsigned char temperature)
@@ -55,7 +57,44 @@ void Control_Fan(unsigned char temperature)
 	else if (temperature > 50)
 	{
 		Timer0_Set_Duty_Cycle(1);// DC motor at 100%
-		EEPROM_Write(EEPROM_STATE_ADDRESS, 2);// Write Emergency mode to EEPROM
+		if(EEPROM_Read(EEPROM_STATE_ADDRESS) != 3)
+		{
+			EEPROM_Write(EEPROM_STATE_ADDRESS, 2);// Write Emergency mode to EEPROM
+		}
+		
+	}
+}
+
+void Send_Data_MCU2(temperature)
+{
+	if(temperature < 20)
+	{
+		UART_TX('G');// G for green led
+		_delay_ms(100);
+	}
+	else if(temperature >= 20 && temperature < 40)
+	{
+		UART_TX('Y');// Y for yellow led
+		_delay_ms(100);
+	}
+	else if(temperature >= 40 && temperature <= 50)
+	{
+		UART_TX('R');// R for red led
+		_delay_ms(100);
+	}
+	else if(temperature > 50)
+	{
+		if(EEPROM_Read(EEPROM_STATE_ADDRESS) == 3)
+		{
+			UART_TX('A');//Send to MCU2 for Abnormal state
+			_delay_ms(100);
+		}
+		
+		else
+		{
+			UART_TX('E');//Send to MCU2 for Emergency state
+		}
+		
 	}
 }
 
@@ -63,7 +102,7 @@ void Control_Fan(unsigned char temperature)
 void INITS_System(void)
 {
 	sei();         // Enable global interrupt (GIE)
-	UART_INIT(51); //UBRR is 51 for BAUD rate of 9600 with 8MHz frequency
+	UART_INIT(12); //UBRR is 12 for BAUD rate of 9600 with 1MHz frequency
 	ADC_Init();
 	Timer0_Fast_PWM_INIT();
 	External_Interupt1_Init();
@@ -93,10 +132,9 @@ int main(void)
 			
 			Control_Fan(temperature);
 			
-			UART_TX(temperature);// Send Temperature to MCU2
-			_delay_ms(100);
-			
 		}
+		
+		Send_Data_MCU2(temperature);
     }
 }
 
@@ -110,18 +148,22 @@ ISR(INT1_vect)
 
 ISR(TIMER1_OVF_vect)
 {
-	int Over_Flow_Counter = 0;
-	
-	while (temperature > 50) 
+	TCNT1 = 63583; // Reset counter to achieve 500ms overflow
+	if (temperature > 50) 
 	{
 		Over_Flow_Counter++;
 		
-		if(Over_Flow_Counter >= 14) // 14 overflows * 500ms = 7 seconds
+		if(Over_Flow_Counter >= 7) // 14 overflows * 500ms = 7 seconds
 		{
 			EEPROM_Write(EEPROM_STATE_ADDRESS, 3); //Write Abnormal State to EEPROM
-			UART_TX('A');                          //Send to MCU2 for Abnormal state 
+			UART_TX('A');
+			Over_Flow_Counter = 0;                 //Restart counter
 		}
 	}
+	else
+	{
 		Over_Flow_Counter = 0; //Restart counter if condition is no longer met
+	}
 }
+		
 

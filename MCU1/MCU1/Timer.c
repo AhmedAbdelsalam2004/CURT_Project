@@ -5,7 +5,7 @@
  *  Author: a3abd
  */ 
 
-#define F_CPU 8000000ul
+#define F_CPU 1000000ul
 #include <avr/io.h>
 #include <util/delay.h>
 #include "STD_MacRos.h"
@@ -14,9 +14,8 @@
 
 void timer1_init() {
 	// Set timer1 to normal mode
-	setbit(TCCR1B,CS10);// Prescaler = 1024
-	setbit(TCCR1B,CS12);
-	TCNT1 = 0; // Initialize counter
+	setbit(TCCR1B,CS12);// Prescaler = 256
+	TCNT1 = 63583; // Initialize counter to achieve 500ms overflow
 	setbit(TIMSK,TOIE1);// Enable overflow interrupt
 }
 

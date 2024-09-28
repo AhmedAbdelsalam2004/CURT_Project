@@ -5,7 +5,7 @@
  * Author : a3abd
  */ 
 
-#define F_CPU 8000000UL
+#define F_CPU 1000000UL
 #include <avr/io.h>
 #include <util/delay.h>
 #include "STD_MacRos.h"
@@ -14,53 +14,57 @@
 #include "ADC.h"
 
 
-/*Function to control LEDs based on received temperature from MCU1*/
-void Control_Leds(unsigned char Temperature)
-{
-	if(Temperature < 20)
-	{
-		setbit(PORTC, 2);  // Turn on Green LED
-		clrbit(PORTC, 4);  // Turn off Yellow LED
-		clrbit(PORTC, 6);  // Turn off Red LED
-		clrbit(PORTA, 1);  // Turn off Buzzer
-	}
-	
-	else if(Temperature >= 20 && Temperature < 40)
-	{
-		setbit(PORTC, 4);  // Turn on Yellow LED
-		clrbit(PORTC, 2);  // Turn off Green LED
-		clrbit(PORTC, 6);  // Turn off Red LED
-		clrbit(PORTA, 1);  // Turn off Buzzer
-	}
-	
-	else if(Temperature >= 40 && Temperature <= 50)
-	{
-		clrbit(PORTC, 2);  // Turn off Green LED
-		clrbit(PORTC, 4);  // Turn off Yellow LED
-		setbit(PORTC, 6);  // Turn on Red LED
-		clrbit(PORTA, 1);  // Turn off Buzzer
-	}
-	
-	else if(Temperature > 50)
-	{
-		Timer0_Set_Duty_Cycle(0.5);
-		clrbit(PORTC, 2);  // Turn off Green LED
-		clrbit(PORTC, 4);  // Turn off Yellow LED
-		setbit(PORTC, 6);  // Turn on Red LED
-		setbit(PORTA, 1);  //Activate Buzzer
-	}	
-}
+unsigned char Mortor_flag = 0;
+
 
 /* Function to control servo motor in Abnormal state */
 void Control_Servo_Motor(void)
 {
-	Timer2_Set_Duty_Cycle(0.075); // Set the Servo motor for 90 degrees
+	Timer2_Set_Duty_Cycle(0.5); // Set the Servo motor for 90 degrees
+}
+
+/*Function to control LEDs based on received temperature from MCU1*/
+void Control_System(unsigned char Received_data)
+{
+	switch(Received_data)
+	{
+		case 'G':
+			setbit(PORTC, 2); //Turn on green led
+			clrbit(PORTC, 4); //Turn off yellow led
+			clrbit(PORTC, 6); //Turn off red led
+			Mortor_flag = 0;
+			break;
+		case 'Y':
+			clrbit(PORTC, 2); //Turn off green led
+			setbit(PORTC, 4); //Turn on yellow led
+			clrbit(PORTC, 6); //Turn off red led
+			Mortor_flag = 0;
+			break;
+		case 'R':
+			clrbit(PORTC, 2); //Turn off green led
+			clrbit(PORTC, 4); //Turn off yellow led
+			setbit(PORTC, 6); //Turn on red led
+			Mortor_flag = 0;
+			break;
+		case 'S':
+			Timer0_Set_Duty_Cycle(0);
+			Mortor_flag = 1;
+			break;
+		case 'E':
+			setbit(PORTA, 1);//Turn Buzzer on
+			break;
+		case 'A':
+			Control_Servo_Motor();
+			Timer0_Set_Duty_Cycle(0);
+			Mortor_flag = 1;
+			break;
+	}
 }
 
 /* Function for all initializations needed */
 void System_INITS(void)
 {
-	UART_INIT(51);//UBRR is 51 for BAUD rate of 9600 with 8MHz frequency
+	UART_INIT(12);//UBRR is 12 for BAUD rate of 9600 with 1MHz frequency
 	Timer0_Fast_PWM_INIT();
 	Timer2_Servo_Motor_INIT();
 	ADC_Init();
@@ -80,30 +84,28 @@ int main(void)
 	unsigned char Received_Data = 0;
 	double Potentiometer = 0;
 	float Duty_Cycle = 0;
+	double temp = 0;
 	
     while (1) 
     {
+
 		Received_Data = UART_RX();
 		
-		Control_Leds(Received_Data);
+		Control_System(Received_Data);
 		
-		if(Received_Data == 'S')// Condition for press of button
+		Potentiometer = ADC_Read(0);
+		
+		if(Potentiometer != temp)
 		{
-			Timer0_Set_Duty_Cycle(0);
-			while(Received_Data >= 40);
+			temp = Potentiometer;
+			Duty_Cycle = (Potentiometer) / 1023;
+			
+			if(Mortor_flag == 0)
+			{
+				Timer0_Set_Duty_Cycle(Duty_Cycle);
+			}
 		}
 		
-		else if(Received_Data == 'A')// Condition for Abnormal state
-		{
-			Control_Servo_Motor();
-		}
-		
-		else
-		{
-			Potentiometer = ADC_Read(0);
-			Duty_Cycle = (Potentiometer) / 1024;
-			Timer0_Set_Duty_Cycle(Duty_Cycle);	
-		}
 		
     }
 }

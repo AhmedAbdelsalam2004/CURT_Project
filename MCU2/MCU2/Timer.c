@@ -5,7 +5,7 @@
  *  Author: a3abd
  */ 
 
-#define F_CPU 8000000UL
+#define F_CPU 1000000UL
 #include <avr/io.h>
 #include <util/delay.h>
 #include "STD_MacRos.h"
@@ -31,19 +31,23 @@ void Timer0_Fast_PWM_INIT()
 
 void Timer2_Servo_Motor_INIT()
 {
-	setbit(TCCR0,WGM20);// Set mode to Fast PWM
-	setbit(TCCR0,WGM21);
-	
-	setbit(DDRD,7);// Set OC2 as output
-	
-	clrbit(TCCR0,CS20);// PreScalar = 64
-	clrbit(TCCR0,CS21);
-	setbit(TCCR0,CS22);
-	
-	clrbit(TCCR0,COM20);// non_Inverting mode
-	setbit(TCCR0,COM21);
-	
-	OCR2 = 0;
+	 // Set mode to Fast PWM
+	 setbit(TCCR2, WGM20);
+	 setbit(TCCR2, WGM21);
+	 
+	 // Set OC2 (PD7) as output
+	 setbit(DDRD, PD7);
+	 
+	 // Set Prescaler to 64
+	 clrbit(TCCR2, CS22);
+	 setbit(TCCR2, CS21);
+	 setbit(TCCR2, CS20);
+	 
+	 // Set to non-inverting mode
+	 clrbit(TCCR2, COM20);
+	 setbit(TCCR2, COM21);
+	 
+	 OCR2 = 0;
 }
 
 

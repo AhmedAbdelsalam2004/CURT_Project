@@ -5,7 +5,7 @@
  *  Author: a3abd
  */ 
 
-#define F_CPU 8000000ul
+#define F_CPU 1000000ul
 #include "STD_MacRos.h"
 #include "ADC.h"
 #include <avr/io.h>

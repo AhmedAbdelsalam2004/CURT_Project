@@ -5,7 +5,7 @@
  *  Author: a3abd
  */ 
 
-#define F_CPU 8000000UL
+#define F_CPU 1000000UL
 #include <util/delay.h>
 #include <avr/io.h>
 #include "UART.h"
